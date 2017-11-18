@@ -1,19 +1,24 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Autofac.Extras.NLog;
 using Discord;
 using Discord.WebSocket;
-using NLog;
+using LeaderBot.Config;
 
-namespace LeaderBot
+namespace LeaderBot.Services
 {
-    internal class Discord
+    internal class DiscordService
     {
-        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-        
+        private readonly ILogger _logger;
+
+        private readonly AppConfig _config;
+
         private readonly DiscordSocketClient _client;
-        
-        public Discord()
+
+        public DiscordService(ILogger logger, ConfigProviderService<AppConfig> configProvider)
         {
+            _logger = logger;
+            _config = configProvider.Config;
             _client = new DiscordSocketClient();
             _client.Log += ClientOnLog;
             _client.Connected += ClientOnConnected;
@@ -22,9 +27,9 @@ namespace LeaderBot
             _client.MessageReceived += ClientOnMessageReceived;
         }
 
-        public async Task StartAsync(string token)
+        public async Task StartAsync()
         {
-            await _client.LoginAsync(TokenType.Bot, token);
+            await _client.LoginAsync(TokenType.Bot, _config.Discord.Token);
             await _client.StartAsync();
         }
         
@@ -35,22 +40,22 @@ namespace LeaderBot
             switch (logMessage.Severity)
             {
                 case LogSeverity.Critical:
-                    Logger.Fatal(logFormat, logMessage.Message);
+                    _logger.Fatal(logFormat, logMessage.Message);
                     break;
                 case LogSeverity.Error:
-                    Logger.Error(logFormat, logMessage.Message);
+                    _logger.Error(logFormat, logMessage.Message);
                     break;
                 case LogSeverity.Warning:
-                    Logger.Warn(logFormat, logMessage.Message);
+                    _logger.Warn(logFormat, logMessage.Message);
                     break;
                 case LogSeverity.Info:
-                    Logger.Info(logFormat, logMessage.Message);
+                    _logger.Info(logFormat, logMessage.Message);
                     break;
                 case LogSeverity.Verbose:
-                    Logger.Debug(logFormat, logMessage.Message);
+                    _logger.Debug(logFormat, logMessage.Message);
                     break;
                 case LogSeverity.Debug:
-                    Logger.Trace(logFormat, logMessage.Message);
+                    _logger.Trace(logFormat, logMessage.Message);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -61,14 +66,14 @@ namespace LeaderBot
 
         private Task ClientOnConnected()
         {
-            Logger.Info("We are now successfully connected to Discord.");
+            _logger.Info("We are now successfully connected to Discord.");
 
             return Task.CompletedTask;
         }
 
         private Task ClientOnDisconnected(Exception exception)
         {
-            Logger.Warn(exception, "We somehow got disconnected from Discord.");
+            _logger.Warn("We somehow got disconnected from Discord.", exception);
             
             // TODO: Do we have to reconnect ourselves ??
 
@@ -77,16 +82,16 @@ namespace LeaderBot
 
         private Task ClientOnGuildAvailable(SocketGuild guild)
         {
-            Logger.Info($"We have entered some weird guild named {guild.Name} and they seem to have {guild.MemberCount} members.");
+            _logger.Info($"We have entered some weird guild named {guild.Name} and they seem to have {guild.MemberCount} members.");
 
             return Task.CompletedTask;
         }
 
         private Task ClientOnMessageReceived(SocketMessage message)
         {
-            Logger.Info($"Received a message from '{message.Author.Username}': '{message.Content}'.");
+            _logger.Info($"Received a message from '{message.Author.Username}': '{message.Content}'.");
 
             return Task.CompletedTask;
         }
-    }
+     }  
 }
