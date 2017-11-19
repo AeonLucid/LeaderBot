@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Autofac.Extras.NLog;
@@ -7,6 +8,7 @@ using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Net.WebSocket;
 using LeaderBot.Config;
+using LeaderBot.Data;
 using Newtonsoft.Json;
 
 namespace LeaderBot.Services
@@ -19,9 +21,12 @@ namespace LeaderBot.Services
 
         private readonly DiscordClient _client;
 
+        private readonly List<Game> _activeGames;
+
         public DiscordService(ILogger logger, ConfigProviderService<AppConfig> configProvider)
         {
             _logger = logger;
+            
             _config = configProvider.Config;
             
             _client = new DiscordClient(new DiscordConfiguration
@@ -32,19 +37,26 @@ namespace LeaderBot.Services
                 LogLevel = LogLevel.Debug,
                 UseInternalLogHandler = false
             });
-
-            _client.SetWebSocketClient<WebSocket4NetCoreClient>();
             
+            _client.SetWebSocketClient<WebSocket4NetCoreClient>();
             _client.Ready += ClientOnReady;
+            _client.PresenceUpdated += ClientOnPresenceUpdated;
             _client.GuildAvailable += ClientOnGuildAvailable;
             _client.ClientErrored += ClientOnClientErrored;
             _client.DebugLogger.LogMessageReceived += DebugLoggerOnLogMessageReceived;
+            
+            _activeGames = new List<Game>();
         }
 
         /// <summary>
         ///     The guild containing the leaderboards.
         /// </summary>
         public DiscordGuild Guild { get; private set; }
+
+        /// <summary>
+        ///     The current games being played in the <see cref="Guild"/>.
+        /// </summary>
+        public Game[] ActiveGames => _activeGames.ToArray();
         
         public async Task StartAsync()
         {
@@ -72,6 +84,19 @@ namespace LeaderBot.Services
                 
                 await InitializeGuild();
             }
+        }
+
+        private Task ClientOnPresenceUpdated(PresenceUpdateEventArgs e)
+        {
+            if (Guild == null || e.Guild.Id != Guild.Id)
+            {
+                return Task.CompletedTask;
+            }
+
+            
+            _logger.Info($"{e.Member.DisplayName} is now playing {e.Game.Name} instead of {e.PresenceBefore.Game.Name}");
+            
+            return Task.CompletedTask;
         }
 
         private Task ClientOnClientErrored(ClientErrorEventArgs clientErrorEventArgs)
