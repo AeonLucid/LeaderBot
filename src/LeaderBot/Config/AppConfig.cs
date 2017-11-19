@@ -13,7 +13,7 @@ namespace LeaderBot.Config
         public DiscordConfig Discord { get; set; } = new DiscordConfig();
         
         [JsonProperty("games")]
-        public List<IGameConfig> Games { get; set; }
+        public List<IGameConfig> Games { get; set; } = new List<IGameConfig>();
 
         public void Prepare()
         {
