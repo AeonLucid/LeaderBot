@@ -5,6 +5,26 @@ VisualStudioVersion = 12.0.0.0
 MinimumVisualStudioVersion = 10.0.0.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeaderBot", "LeaderBot\LeaderBot.csproj", "{00C3F170-0395-4838-9F5E-99D9C38629AE}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Libraries", "Libraries", "{01175E5A-A69D-40B3-B927-C1E8841FEBAF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Discord.Net.Commands", "..\submodules\Discord.Net\src\Discord.Net.Commands\Discord.Net.Commands.csproj", "{CD03AB1A-C10E-419A-AEDC-334FC357E16F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DiscordNet", "DiscordNet", "{3F67E2EA-44A3-4D47-BE65-12A26A7DD5DC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Discord.Net.Core", "..\submodules\Discord.Net\src\Discord.Net.Core\Discord.Net.Core.csproj", "{787492AE-704D-47BD-B35E-726FE341E9DC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Discord.Net.WebSocket", "..\submodules\Discord.Net\src\Discord.Net.WebSocket\Discord.Net.WebSocket.csproj", "{533DE5B5-1C59-467F-B3C3-AD4AE15994F8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Discord.Net.Webhook", "..\submodules\Discord.Net\src\Discord.Net.Webhook\Discord.Net.Webhook.csproj", "{11E74840-35C8-4ABE-9C7F-FCB437128F91}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Discord.Net.Rpc", "..\submodules\Discord.Net\src\Discord.Net.Rpc\Discord.Net.Rpc.csproj", "{251E20EE-32E6-40D9-8682-1C801949EF4E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Discord.Net.Rest", "..\submodules\Discord.Net\src\Discord.Net.Rest\Discord.Net.Rest.csproj", "{233A080E-83DC-49F1-894F-2567EBE7AEF1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Discord.Net.Providers.WS4Net", "..\submodules\Discord.Net\src\Discord.Net.Providers.WS4Net\Discord.Net.Providers.WS4Net.csproj", "{55A447CB-EF90-445B-AD88-2BFB3CDD0EC6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Discord.Net.DebugTools", "..\submodules\Discord.Net\src\Discord.Net.DebugTools\Discord.Net.DebugTools.csproj", "{4B2E9CD5-7E1C-4799-A0D7-35DBFF3EF287}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,8 +35,51 @@ Global
 		{00C3F170-0395-4838-9F5E-99D9C38629AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{00C3F170-0395-4838-9F5E-99D9C38629AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{00C3F170-0395-4838-9F5E-99D9C38629AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CD03AB1A-C10E-419A-AEDC-334FC357E16F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CD03AB1A-C10E-419A-AEDC-334FC357E16F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CD03AB1A-C10E-419A-AEDC-334FC357E16F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CD03AB1A-C10E-419A-AEDC-334FC357E16F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{787492AE-704D-47BD-B35E-726FE341E9DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{787492AE-704D-47BD-B35E-726FE341E9DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{787492AE-704D-47BD-B35E-726FE341E9DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{787492AE-704D-47BD-B35E-726FE341E9DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{533DE5B5-1C59-467F-B3C3-AD4AE15994F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{533DE5B5-1C59-467F-B3C3-AD4AE15994F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{533DE5B5-1C59-467F-B3C3-AD4AE15994F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{533DE5B5-1C59-467F-B3C3-AD4AE15994F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{11E74840-35C8-4ABE-9C7F-FCB437128F91}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11E74840-35C8-4ABE-9C7F-FCB437128F91}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11E74840-35C8-4ABE-9C7F-FCB437128F91}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11E74840-35C8-4ABE-9C7F-FCB437128F91}.Release|Any CPU.Build.0 = Release|Any CPU
+		{251E20EE-32E6-40D9-8682-1C801949EF4E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{251E20EE-32E6-40D9-8682-1C801949EF4E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{251E20EE-32E6-40D9-8682-1C801949EF4E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{251E20EE-32E6-40D9-8682-1C801949EF4E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{233A080E-83DC-49F1-894F-2567EBE7AEF1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{233A080E-83DC-49F1-894F-2567EBE7AEF1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{233A080E-83DC-49F1-894F-2567EBE7AEF1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{233A080E-83DC-49F1-894F-2567EBE7AEF1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55A447CB-EF90-445B-AD88-2BFB3CDD0EC6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55A447CB-EF90-445B-AD88-2BFB3CDD0EC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55A447CB-EF90-445B-AD88-2BFB3CDD0EC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55A447CB-EF90-445B-AD88-2BFB3CDD0EC6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4B2E9CD5-7E1C-4799-A0D7-35DBFF3EF287}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4B2E9CD5-7E1C-4799-A0D7-35DBFF3EF287}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4B2E9CD5-7E1C-4799-A0D7-35DBFF3EF287}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4B2E9CD5-7E1C-4799-A0D7-35DBFF3EF287}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3F67E2EA-44A3-4D47-BE65-12A26A7DD5DC} = {01175E5A-A69D-40B3-B927-C1E8841FEBAF}
+		{CD03AB1A-C10E-419A-AEDC-334FC357E16F} = {3F67E2EA-44A3-4D47-BE65-12A26A7DD5DC}
+		{787492AE-704D-47BD-B35E-726FE341E9DC} = {3F67E2EA-44A3-4D47-BE65-12A26A7DD5DC}
+		{533DE5B5-1C59-467F-B3C3-AD4AE15994F8} = {3F67E2EA-44A3-4D47-BE65-12A26A7DD5DC}
+		{11E74840-35C8-4ABE-9C7F-FCB437128F91} = {3F67E2EA-44A3-4D47-BE65-12A26A7DD5DC}
+		{251E20EE-32E6-40D9-8682-1C801949EF4E} = {3F67E2EA-44A3-4D47-BE65-12A26A7DD5DC}
+		{233A080E-83DC-49F1-894F-2567EBE7AEF1} = {3F67E2EA-44A3-4D47-BE65-12A26A7DD5DC}
+		{55A447CB-EF90-445B-AD88-2BFB3CDD0EC6} = {3F67E2EA-44A3-4D47-BE65-12A26A7DD5DC}
+		{4B2E9CD5-7E1C-4799-A0D7-35DBFF3EF287} = {3F67E2EA-44A3-4D47-BE65-12A26A7DD5DC}
 	EndGlobalSection
 EndGlobal

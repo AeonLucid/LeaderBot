@@ -22,10 +22,15 @@ namespace LeaderBot.Services
             _client = new DiscordSocketClient();
             _client.Log += ClientOnLog;
             _client.Connected += ClientOnConnected;
+            _client.Ready += ClientOnReady;
             _client.Disconnected += ClientOnDisconnected;
             _client.GuildAvailable += ClientOnGuildAvailable;
             _client.MessageReceived += ClientOnMessageReceived;
         }
+        
+        public bool Connected { get; private set; }
+        
+        public bool Ready { get; private set; }
 
         public async Task StartAsync()
         {
@@ -66,16 +71,27 @@ namespace LeaderBot.Services
 
         private Task ClientOnConnected()
         {
+            Connected = true;
+            
             _logger.Info("We are now successfully connected to Discord.");
+
+            return Task.CompletedTask;
+        }
+
+        private Task ClientOnReady()
+        {
+            Ready = true;
+            
+            _logger.Info("We are now ready to do stuff.");
 
             return Task.CompletedTask;
         }
 
         private Task ClientOnDisconnected(Exception exception)
         {
-            _logger.Warn("We somehow got disconnected from Discord.", exception);
+            Connected = false;
             
-            // TODO: Do we have to reconnect ourselves ??
+            _logger.Warn("We somehow got disconnected from Discord.", exception);
 
             return Task.CompletedTask;
         }
@@ -92,6 +108,17 @@ namespace LeaderBot.Services
             _logger.Info($"Received a message from '{message.Author.Username}': '{message.Content}'.");
 
             return Task.CompletedTask;
+        }
+
+        /// <summary>
+        ///     Makes sure that a guild satisfies the requirements
+        ///     to be used for this bot.
+        /// </summary>
+        /// <param name="guild"></param>
+        /// <returns></returns>
+        private async Task InitializeGuild(SocketGuild guild)
+        {
+            
         }
      }  
 }

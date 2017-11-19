@@ -39,8 +39,6 @@ namespace LeaderBot.Services
             {
                 Config = (T) Activator.CreateInstance(typeof(T));
                     
-                await File.WriteAllTextAsync(_configPath, JsonConvert.SerializeObject(Config, Formatting.Indented));
-                    
                 _logger.Trace($"A new configuration file called {_configName} has been created.");
             }
             else
@@ -49,6 +47,9 @@ namespace LeaderBot.Services
                     
                 _logger.Trace($"The existing configuration file {_configName} has been loaded.");
             }
+
+            // Save current config to a file. Will also add any new config values. 
+            await File.WriteAllTextAsync(_configPath, JsonConvert.SerializeObject(Config, Formatting.Indented));
         }
     }
 }

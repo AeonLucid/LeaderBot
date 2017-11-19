@@ -4,7 +4,7 @@ namespace LeaderBot.Config
 {
     internal class AppConfig
     {
-        [JsonProperty("discord", Required = Required.Always)]
+        [JsonProperty("discord")]
         public DiscordConfig Discord { get; set; } = new DiscordConfig();
     }
 }
