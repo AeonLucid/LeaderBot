@@ -4,6 +4,7 @@ using Autofac.Extras.NLog;
 using Discord;
 using Discord.WebSocket;
 using LeaderBot.Config;
+using Newtonsoft.Json;
 
 namespace LeaderBot.Services
 {
@@ -96,11 +97,11 @@ namespace LeaderBot.Services
             return Task.CompletedTask;
         }
 
-        private Task ClientOnGuildAvailable(SocketGuild guild)
+        private async Task ClientOnGuildAvailable(SocketGuild guild)
         {
             _logger.Info($"We have entered some weird guild named {guild.Name} and they seem to have {guild.MemberCount} members.");
 
-            return Task.CompletedTask;
+            await InitializeGuild(guild);
         }
 
         private Task ClientOnMessageReceived(SocketMessage message)
@@ -118,7 +119,11 @@ namespace LeaderBot.Services
         /// <returns></returns>
         private async Task InitializeGuild(SocketGuild guild)
         {
-            
+            var channel = await guild.CreateCategoryChannelAsync("test");
+            var secondChannel = await guild.CreateTextChannelAsync("test2", channel.Id);
+
+            _logger.Info(JsonConvert.SerializeObject(channel, Formatting.Indented));
+            _logger.Info(JsonConvert.SerializeObject(secondChannel, Formatting.Indented));
         }
      }  
 }
