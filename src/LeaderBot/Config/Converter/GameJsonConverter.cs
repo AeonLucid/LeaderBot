@@ -21,6 +21,7 @@ namespace LeaderBot.Config.Converter
             var game = _gameTypes.First(kv => kv.Value == value.GetType()).Key;
             
             token.AddFirst(new JProperty("game", game.ToString()));
+            token.WriteTo(writer);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object value, JsonSerializer serializer)
