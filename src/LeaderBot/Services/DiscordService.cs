@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Autofac.Extras.NLog;
-using Discord;
-using Discord.WebSocket;
+using DSharpPlus;
+using DSharpPlus.Entities;
+using DSharpPlus.EventArgs;
+using DSharpPlus.Net.WebSocket;
 using LeaderBot.Config;
 using Newtonsoft.Json;
 
@@ -14,116 +17,115 @@ namespace LeaderBot.Services
 
         private readonly AppConfig _config;
 
-        private readonly DiscordSocketClient _client;
+        private readonly DiscordClient _client;
 
         public DiscordService(ILogger logger, ConfigProviderService<AppConfig> configProvider)
         {
             _logger = logger;
             _config = configProvider.Config;
-            _client = new DiscordSocketClient();
-            _client.Log += ClientOnLog;
-            _client.Connected += ClientOnConnected;
-            _client.Ready += ClientOnReady;
-            _client.Disconnected += ClientOnDisconnected;
-            _client.GuildAvailable += ClientOnGuildAvailable;
-            _client.MessageReceived += ClientOnMessageReceived;
-        }
-        
-        public bool Connected { get; private set; }
-        
-        public bool Ready { get; private set; }
+            
+            _client = new DiscordClient(new DiscordConfiguration
+            {
+                AutoReconnect = true,
+                Token = _config.Discord.Token,
+                TokenType = TokenType.Bot,
+                LogLevel = LogLevel.Debug,
+                UseInternalLogHandler = false
+            });
 
+            _client.SetWebSocketClient<WebSocket4NetCoreClient>();
+            
+            _client.Ready += ClientOnReady;
+            _client.GuildAvailable += ClientOnGuildAvailable;
+            _client.ClientErrored += ClientOnClientErrored;
+            _client.DebugLogger.LogMessageReceived += DebugLoggerOnLogMessageReceived;
+        }
+
+        /// <summary>
+        ///     The guild containing the leaderboards.
+        /// </summary>
+        public DiscordGuild Guild { get; private set; }
+        
         public async Task StartAsync()
         {
-            await _client.LoginAsync(TokenType.Bot, _config.Discord.Token);
-            await _client.StartAsync();
-        }
-        
-        private Task ClientOnLog(LogMessage logMessage)
-        {
-            const string logFormat = "Discord => '{0}'.";
-            
-            switch (logMessage.Severity)
-            {
-                case LogSeverity.Critical:
-                    _logger.Fatal(logFormat, logMessage.Message);
-                    break;
-                case LogSeverity.Error:
-                    _logger.Error(logFormat, logMessage.Message);
-                    break;
-                case LogSeverity.Warning:
-                    _logger.Warn(logFormat, logMessage.Message);
-                    break;
-                case LogSeverity.Info:
-                    _logger.Info(logFormat, logMessage.Message);
-                    break;
-                case LogSeverity.Verbose:
-                    _logger.Debug(logFormat, logMessage.Message);
-                    break;
-                case LogSeverity.Debug:
-                    _logger.Trace(logFormat, logMessage.Message);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-
-            return Task.CompletedTask;
+            await _client.ConnectAsync();
         }
 
-        private Task ClientOnConnected()
+        private Task ClientOnReady(ReadyEventArgs readyEventArgs)
         {
-            Connected = true;
-            
-            _logger.Info("We are now successfully connected to Discord.");
-
-            return Task.CompletedTask;
-        }
-
-        private Task ClientOnReady()
-        {
-            Ready = true;
-            
             _logger.Info("We are now ready to do stuff.");
 
             return Task.CompletedTask;
         }
 
-        private Task ClientOnDisconnected(Exception exception)
+        private async Task ClientOnGuildAvailable(GuildCreateEventArgs e)
         {
-            Connected = false;
+            var guild = e.Guild;
             
-            _logger.Warn("We somehow got disconnected from Discord.", exception);
+            _logger.Debug($"We have entered some weird guild named {guild.Name} and they seem to have {guild.MemberCount} members.");
+
+            if (guild.Id == _config.Discord.GuildId)
+            {
+                _logger.Info($"Successfully joined the target guild called {guild.Name}.");
+                
+                Guild = guild;
+                
+                await InitializeGuild();
+            }
+        }
+
+        private Task ClientOnClientErrored(ClientErrorEventArgs clientErrorEventArgs)
+        {
+            _logger.Error("We are broke.");
 
             return Task.CompletedTask;
         }
 
-        private async Task ClientOnGuildAvailable(SocketGuild guild)
+        private void DebugLoggerOnLogMessageReceived(object sender, DebugLogMessageEventArgs e)
         {
-            _logger.Info($"We have entered some weird guild named {guild.Name} and they seem to have {guild.MemberCount} members.");
-
-            await InitializeGuild(guild);
-        }
-
-        private Task ClientOnMessageReceived(SocketMessage message)
-        {
-            _logger.Info($"Received a message from '{message.Author.Username}': '{message.Content}'.");
-
-            return Task.CompletedTask;
+            const string logFormat = "Discord => '{0}'.";
+            
+            switch (e.Level)
+            {
+                case LogLevel.Debug:
+                    _logger.Debug(logFormat, e.Message);
+                    break;
+                case LogLevel.Info:
+                    _logger.Info(logFormat, e.Message);
+                    break;
+                case LogLevel.Warning:
+                    _logger.Warn(logFormat, e.Message);
+                    break;
+                case LogLevel.Error:
+                    _logger.Error(logFormat, e.Message);
+                    break;
+                case LogLevel.Critical:
+                    _logger.Fatal(logFormat, e.Message);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         /// <summary>
         ///     Makes sure that a guild satisfies the requirements
         ///     to be used for this bot.
         /// </summary>
-        /// <param name="guild"></param>
         /// <returns></returns>
-        private async Task InitializeGuild(SocketGuild guild)
+        private async Task InitializeGuild()
         {
-            var channel = await guild.CreateCategoryChannelAsync("test");
-            var secondChannel = await guild.CreateTextChannelAsync("test2", channel.Id);
+            _logger.Trace($"Initializing the target guild.");
 
-            _logger.Info(JsonConvert.SerializeObject(channel, Formatting.Indented));
-            _logger.Info(JsonConvert.SerializeObject(secondChannel, Formatting.Indented));
+            var channels = await Guild.GetChannelsAsync();
+
+            // Get or create a category channel for the leaderboard(s).
+            var categoryChannel = channels.FirstOrDefault(x => x.IsCategory && x.Name.Equals(_config.Discord.CategoryName));
+            if (categoryChannel == null)
+            {
+                _logger.Trace($"Creating the category channel for the leaderboard(s).");
+                
+                await Guild.CreateChannelAsync(_config.Discord.CategoryName, ChannelType.Category);
+            }
         }
      }  
 }

@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
 using Autofac.Extras.NLog;
 using LeaderBot.Config;
+using LeaderBot.Config.Games;
+using LeaderBot.Data;
 using LeaderBot.Services;
 using NLog;
 using ILogger = Autofac.Extras.NLog.ILogger;
@@ -47,7 +50,14 @@ namespace LeaderBot
             {
                 var logger = container.Resolve<ILogger>();
                 var discordService = container.Resolve<DiscordService>();
+                var configProvider = container.Resolve<ConfigProviderService<AppConfig>>();
+                
+                // Prepare the config.
+                configProvider.Config.Prepare();
 
+                await configProvider.SaveAsync();
+
+                // Launch the application.
                 logger.Info("Starting LeaderBot.");
                 
                 await discordService.StartAsync();

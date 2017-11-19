@@ -7,15 +7,9 @@
   <ItemGroup>
     <PackageReference Include="Autofac" Version="4.6.2" />
     <PackageReference Include="Autofac.Extras.NLog" Version="1.3.0" />
+    <PackageReference Include="DSharpPlus" Version="3.2.3" />
+    <PackageReference Include="DSharpPlus.WebSocket.WebSocket4NetCore" Version="3.2.3" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="NLog" Version="4.5.0-beta07" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\submodules\Discord.Net\src\Discord.Net.Commands\Discord.Net.Commands.csproj" />
-    <ProjectReference Include="..\..\submodules\Discord.Net\src\Discord.Net.Core\Discord.Net.Core.csproj" />
-    <ProjectReference Include="..\..\submodules\Discord.Net\src\Discord.Net.Rest\Discord.Net.Rest.csproj" />
-    <ProjectReference Include="..\..\submodules\Discord.Net\src\Discord.Net.Rpc\Discord.Net.Rpc.csproj" />
-    <ProjectReference Include="..\..\submodules\Discord.Net\src\Discord.Net.Webhook\Discord.Net.Webhook.csproj" />
-    <ProjectReference Include="..\..\submodules\Discord.Net\src\Discord.Net.WebSocket\Discord.Net.WebSocket.csproj" />
   </ItemGroup>
 </Project>

@@ -14,7 +14,7 @@ namespace LeaderBot.Config
             config.AddTarget(new ColoredConsoleTarget
             {
                 Name = "BeautifulOutput",
-                Layout = Layout.FromString("${longdate} ${pad:padding=5:inner=${level:uppercase=true}} ${message} ${exception:format=tostring}"),
+                Layout = Layout.FromString("[${longdate}] [${pad:padding=5:inner=${level:uppercase=true}}] ${message} ${exception:format=tostring}"),
                 UseDefaultRowHighlightingRules = true,
                 ErrorStream = false
             });

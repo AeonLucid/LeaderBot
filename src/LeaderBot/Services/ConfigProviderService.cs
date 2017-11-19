@@ -25,6 +25,8 @@ namespace LeaderBot.Services
             _configPath = Path.Combine(configDir, _configName);
         }
         
+        public string Checksum { get; private set; }
+        
         public T Config { get; private set; }
         
         public async Task LoadAsync()
@@ -43,13 +45,35 @@ namespace LeaderBot.Services
             }
             else
             {
-                Config = JsonConvert.DeserializeObject<T>(await File.ReadAllTextAsync(_configPath));
+                var data = await File.ReadAllTextAsync(_configPath);
+                
+                Config = JsonConvert.DeserializeObject<T>(data);
+                Checksum = data.GetChecksum();
                     
                 _logger.Trace($"The existing configuration file {_configName} has been loaded.");
             }
 
             // Save current config to a file. Will also add any new config values. 
+            await SaveAsync();
+        }
+
+        public async Task SaveAsync()
+        {
+            _logger.Trace($"Saving the configuration to {_configPath}.");
+
+            var data = Config.ToJson();
+            var dataChecksum = data.GetChecksum();
+
+            if (!string.IsNullOrEmpty(Checksum) && Checksum == dataChecksum)
+            {
+                return;
+            }
+            
+            _logger.Debug($"Saving the configuration to {_configPath} because there was a checksum change.");
+
             await File.WriteAllTextAsync(_configPath, JsonConvert.SerializeObject(Config, Formatting.Indented));
+
+            Checksum = dataChecksum;
         }
     }
 }
