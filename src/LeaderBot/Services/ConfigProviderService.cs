@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Autofac.Extras.NLog;
+using LeaderBot.Config.Converter;
 using LeaderBot.Extensions;
 using Newtonsoft.Json;
 
@@ -15,6 +17,8 @@ namespace LeaderBot.Services
 
         private readonly string _configPath;
 
+        private readonly JsonSerializerSettings _settings;
+        
         public ConfigProviderService(ILogger logger)
         {
             var rootDir = Path.GetDirectoryName(typeof(Program).Assembly.Location);
@@ -23,6 +27,10 @@ namespace LeaderBot.Services
             _logger = logger;
             _configName = $"{typeof(T).Name.ToPascalCase()}.json";
             _configPath = Path.Combine(configDir, _configName);
+            _settings = new JsonSerializerSettings
+            {
+                Converters = new List<JsonConverter> {new GameJsonConverter()}
+            };
         }
         
         public string Checksum { get; private set; }
@@ -47,7 +55,7 @@ namespace LeaderBot.Services
             {
                 var data = await File.ReadAllTextAsync(_configPath);
                 
-                Config = JsonConvert.DeserializeObject<T>(data);
+                Config = JsonConvert.DeserializeObject<T>(data, _settings);
                 Checksum = data.GetChecksum();
                     
                 _logger.Trace($"The existing configuration file {_configName} has been loaded.");
@@ -71,7 +79,7 @@ namespace LeaderBot.Services
             
             _logger.Debug($"Saving the configuration to {_configPath} because there was a checksum change.");
 
-            await File.WriteAllTextAsync(_configPath, JsonConvert.SerializeObject(Config, Formatting.Indented));
+            await File.WriteAllTextAsync(_configPath, JsonConvert.SerializeObject(Config, Formatting.Indented, _settings));
 
             Checksum = dataChecksum;
         }
