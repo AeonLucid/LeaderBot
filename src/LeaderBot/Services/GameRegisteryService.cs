@@ -36,7 +36,7 @@ namespace LeaderBot.Services
 
                     if (!typeof(BaseGame).IsAssignableFrom(type))
                     {
-                        throw new Exception("Expected the game to implemen IBaseGame.");
+                        throw new Exception("Expected the game to extends BaseGame.");
                     }
 
                     Games.Add(game.Name, (BaseGame) _context.Resolve(type));

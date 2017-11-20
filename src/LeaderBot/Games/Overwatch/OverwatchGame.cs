@@ -1,5 +1,4 @@
-﻿using System;
-using Autofac.Extras.NLog;
+﻿using Autofac.Extras.NLog;
 using LeaderBot.Attributes;
 using LeaderBot.Games.Base;
 

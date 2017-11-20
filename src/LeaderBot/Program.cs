@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
 using Autofac.Extras.NLog;
-using Autofac.Features.ResolveAnything;
 using LeaderBot.Config;
 using LeaderBot.Config.Converter;
 using LeaderBot.Games.Base;
@@ -89,16 +88,28 @@ namespace LeaderBot
                 logger.Info("Starting LeaderBot.");
                 
                 await discordService.StartAsync();
-
-                foreach (var gameConfig in configProvider.Config.Games)
+                
+                // Load the games.
+                foreach (var (gameName, game) in gameRegistery.Games)
                 {
+                    var gameConfig = configProvider.Config.Games.FirstOrDefault(x => x.GetType() == game.ConfigType);
+                    
+                    if (gameConfig == null)
+                    {
+                        throw new Exception($"The game {game} does not have a config loaded.");
+                    }
+
                     if (!gameConfig.Enabled)
                     {
                         continue;
                     }
+                
+                    if (!gameRegistery.GetDiscordNames(gameName).Any())
+                    {
+                        logger.Warn($"The game {gameName} does not have any Discord names.");
+                    }
                     
-                    var game = gameRegistery.Games.Values.First(g => g.ConfigType == gameConfig.GetType());
-                    
+                    logger.Trace($"Enabling the game {gameName}.");
                     game.Initialize(gameConfig);
                 }
                 
