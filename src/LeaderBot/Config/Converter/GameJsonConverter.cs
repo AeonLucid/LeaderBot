@@ -10,15 +10,10 @@ namespace LeaderBot.Config.Converter
 {
     public class GameJsonConverter : JsonConverter
     {
-        private readonly Dictionary<Game, Type> _gameTypes = new Dictionary<Game, Type>
-        {
-            {Game.RocketLeague, typeof(RocketLeagueConfig)}
-        };
-        
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             var token = (JObject)JToken.FromObject(value);
-            var game = _gameTypes.First(kv => kv.Value == value.GetType()).Key;
+            var game = Constants.ConfigTypes.First(kv => kv.Value == value.GetType()).Key;
             
             token.AddFirst(new JProperty("game", game.ToString()));
             token.WriteTo(writer);
@@ -34,7 +29,7 @@ namespace LeaderBot.Config.Converter
                 throw new JsonReaderException($"Unknown game '{gameName}'.");
             }
 
-            if (!_gameTypes.TryGetValue(game, out var type))
+            if (!Constants.ConfigTypes.TryGetValue(game, out var type))
             {
                 throw new JsonReaderException($"The game {game} has no configuration type set.");
             }

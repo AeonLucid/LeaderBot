@@ -21,7 +21,11 @@ namespace LeaderBot.Services
 
         private readonly DiscordClient _client;
 
-        private readonly List<Game> _activeGames;
+        // TODO: Only count players that are registered for that specific game leaderboard.
+        
+        // TODO: Count players at initialize, either grab all users or every user by his discord id.
+        //    Preferably the last one as we have to store the discord user ids anyways.
+        private readonly Dictionary<Game, int> _playerAmount;
 
         public DiscordService(ILogger logger, ConfigProviderService<AppConfig> configProvider)
         {
@@ -44,8 +48,10 @@ namespace LeaderBot.Services
             _client.GuildAvailable += ClientOnGuildAvailable;
             _client.ClientErrored += ClientOnClientErrored;
             _client.DebugLogger.LogMessageReceived += DebugLoggerOnLogMessageReceived;
-            
-            _activeGames = new List<Game>();
+
+            _playerAmount = Enum.GetValues(typeof(Game))
+                .Cast<Game>()
+                .ToDictionary(x => x, y => 0);
         }
 
         /// <summary>
@@ -56,7 +62,7 @@ namespace LeaderBot.Services
         /// <summary>
         ///     The current games being played in the <see cref="Guild"/>.
         /// </summary>
-        public Game[] ActiveGames => _activeGames.ToArray();
+        public Game[] ActiveGames => _playerAmount.Where(x => x.Value > 0).Select(x => x.Key).ToArray();
         
         public async Task StartAsync()
         {
@@ -85,7 +91,7 @@ namespace LeaderBot.Services
                 await InitializeGuild();
             }
         }
-
+        
         private Task ClientOnPresenceUpdated(PresenceUpdateEventArgs e)
         {
             if (Guild == null || e.Guild.Id != Guild.Id)
@@ -93,15 +99,22 @@ namespace LeaderBot.Services
                 return Task.CompletedTask;
             }
 
+            // Check if the game even changed.
+            if (e.PresenceBefore.Game.Name.ToLower().Equals(e.Game.Name.ToLower()))
+            {
+                return Task.CompletedTask;
+            }
             
-            _logger.Info($"{e.Member.DisplayName} is now playing {e.Game.Name} instead of {e.PresenceBefore.Game.Name}");
+            _logger.Trace($"{e.Member.DisplayName} is now playing {e.Game.Name} instead of {e.PresenceBefore.Game.Name}");
+
+            UpdatePlayerCount(e.PresenceBefore.Game.Name, e.Game.Name);
             
             return Task.CompletedTask;
         }
 
-        private Task ClientOnClientErrored(ClientErrorEventArgs clientErrorEventArgs)
+        private Task ClientOnClientErrored(ClientErrorEventArgs e)
         {
-            _logger.Error("We are broke.");
+            _logger.Error("We are broke.", e.Exception);
 
             return Task.CompletedTask;
         }
@@ -133,6 +146,27 @@ namespace LeaderBot.Services
         }
 
         /// <summary>
+        ///     Holds track of the amount of players for each
+        ///     <see cref="Game"/> in the <see cref="_playerAmount"/> dictionary.
+        /// </summary>
+        /// <param name="previousGameStr"></param>
+        /// <param name="nextGameStr"></param>
+        private void UpdatePlayerCount(string previousGameStr, string nextGameStr)
+        {
+            if (!string.IsNullOrWhiteSpace(previousGameStr) &&
+                Constants.DiscordGameNames.TryGetValue(previousGameStr, out var previousGame))
+            {
+                _playerAmount[previousGame]--;
+            }
+
+            if (!string.IsNullOrWhiteSpace(nextGameStr) &&
+                Constants.DiscordGameNames.TryGetValue(nextGameStr, out var nextGame))
+            {
+                _playerAmount[nextGame]++;
+            }
+        }
+        
+        /// <summary>
         ///     Makes sure that a guild satisfies the requirements
         ///     to be used for this bot.
         /// </summary>
@@ -140,7 +174,7 @@ namespace LeaderBot.Services
         private async Task InitializeGuild()
         {
             _logger.Trace($"Initializing the target guild.");
-
+            
             var channels = await Guild.GetChannelsAsync();
 
             // Get or create a category channel for the leaderboard(s).
@@ -151,6 +185,42 @@ namespace LeaderBot.Services
                 
                 await Guild.CreateChannelAsync(_config.Discord.CategoryName, ChannelType.Category);
             }
+            
+            // Create leaderboard channels.
+            foreach (var game in Enum.GetValues(typeof(Game)).Cast<Game>())
+            {
+                if (!Constants.ConfigTypes.TryGetValue(game, out var configType))
+                {
+                    throw new Exception($"The game {game} does not have a config type defined.");
+                }
+                
+                var gameConfig = _config.Games.FirstOrDefault(x => x.GetType() == configType);
+                if (gameConfig == null)
+                {
+                    throw new Exception($"The game {game} does not have a config loaded.");
+                }
+
+                if (!gameConfig.Enabled)
+                {
+                    continue;
+                }
+                
+                var gameName = Constants.DiscordGameNames.FirstOrDefault(x => x.Value == game);
+                if (gameName.Equals(default(KeyValuePair<string,Game>)))
+                {
+                    throw new Exception($"The game {game} does not have a name defined in the constants.");
+                }
+
+                // TODO: Proper channel names instead of using '.ToLower().Replace(" ", "-")'
+                if (channels.Any(x => x.Parent == categoryChannel && x.Type == ChannelType.Text && x.Name.Equals(gameName.Key.ToLower().Replace(" ", "-"))))
+                {
+                    continue;
+                }
+                
+                await Guild.CreateChannelAsync(gameName.Key.ToLower().Replace(" ", "-"), ChannelType.Text, categoryChannel);
+            }
+            
+            _logger.Trace($"Finished initializing the target guild.");
         }
      }  
 }
