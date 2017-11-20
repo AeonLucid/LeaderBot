@@ -1,8 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.Metadata.Ecma335;
 using LeaderBot.Config.Games;
-using LeaderBot.Data;
 using Newtonsoft.Json;
 
 namespace LeaderBot.Config
@@ -14,5 +12,13 @@ namespace LeaderBot.Config
         
         [JsonProperty("games")]
         public List<IGameConfig> Games { get; set; } = new List<IGameConfig>();
+
+        public void Prepare()
+        {
+            if (Games.All(x => x.GetType() != typeof(RocketLeagueConfig)))
+            {
+                Games.Add(new RocketLeagueConfig());
+            }
+        }
     }
 }

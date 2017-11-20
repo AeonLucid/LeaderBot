@@ -53,7 +53,7 @@ namespace LeaderBot
                 var configProvider = container.Resolve<ConfigProviderService<AppConfig>>();
                 
                 // Prepare the config.
-                // configProvider.Config.Prepare();
+                configProvider.Config.Prepare();
 
                 await configProvider.SaveAsync();
 

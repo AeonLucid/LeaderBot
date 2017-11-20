@@ -40,8 +40,6 @@ namespace LeaderBot.Services
         public async Task LoadAsync()
         {
             _logger.Debug($"Loading the configuration file {_configName}.");
-    
-            T config;
 
             Directory.CreateDirectory(Path.GetDirectoryName(_configPath));
     
@@ -67,9 +65,9 @@ namespace LeaderBot.Services
 
         public async Task SaveAsync()
         {
-            _logger.Trace($"Saving the configuration to {_configPath}.");
+            _logger.Trace($"Trying to save the configuration file {_configName}.");
 
-            var data = Config.ToJson();
+            var data = Config.ToJson(Formatting.Indented, _settings);
             var dataChecksum = data.GetChecksum();
 
             if (!string.IsNullOrEmpty(Checksum) && Checksum == dataChecksum)
@@ -77,9 +75,9 @@ namespace LeaderBot.Services
                 return;
             }
             
-            _logger.Debug($"Saving the configuration to {_configPath} because there was a checksum change.");
+            _logger.Debug($"Saving the configuration file {_configName} because there was a checksum change.");
 
-            await File.WriteAllTextAsync(_configPath, JsonConvert.SerializeObject(Config, Formatting.Indented, _settings));
+            await File.WriteAllTextAsync(_configPath, data);
 
             Checksum = dataChecksum;
         }
