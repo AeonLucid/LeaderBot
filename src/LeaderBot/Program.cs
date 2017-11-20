@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
 using Autofac.Extras.NLog;
+using Autofac.Features.ResolveAnything;
 using LeaderBot.Config;
 using LeaderBot.Config.Converter;
 using LeaderBot.Games.Base;
@@ -88,6 +89,18 @@ namespace LeaderBot
                 logger.Info("Starting LeaderBot.");
                 
                 await discordService.StartAsync();
+
+                foreach (var gameConfig in configProvider.Config.Games)
+                {
+                    if (!gameConfig.Enabled)
+                    {
+                        continue;
+                    }
+                    
+                    var game = gameRegistery.Games.Values.First(g => g.ConfigType == gameConfig.GetType());
+                    
+                    game.Initialize(gameConfig);
+                }
                 
                 // Load the games.
                 foreach (var (gameName, game) in gameRegistery.Games)
