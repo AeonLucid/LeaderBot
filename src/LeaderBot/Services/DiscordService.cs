@@ -195,28 +195,7 @@ namespace LeaderBot.Services
             var playingString = playingArray.Length > 0 ? string.Join(", ", playingArray) : "absolutly nothing";
             _logger.Trace($"Currently the guild is playing: {playingString}");
             
-            // Create leaderboard channels.
-            foreach (var (gameName, game) in _gameRegistery.Games)
-            {
-                var gameConfig = _config.Games.FirstOrDefault(x => x.GetType() == game.ConfigType);
-                if (gameConfig == null)
-                {
-                    throw new Exception($"The game {game} does not have a config loaded.");
-                }
-
-                if (!gameConfig.Enabled)
-                {
-                    continue;
-                }
-                
-                var gameNames = _gameRegistery.GetDiscordNames(gameName).ToArray();
-                if (gameNames.Length == 0)
-                {
-                    throw new Exception($"The game {game} does not have a name defined in the constants.");
-                }
-            }
-            
-            _logger.Trace("Finished initializing the target guild.");
+            // TODO: Create the channels.
         }
      }  
 }
