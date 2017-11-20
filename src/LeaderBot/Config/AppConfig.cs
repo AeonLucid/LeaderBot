@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using LeaderBot.Config.Games;
+using LeaderBot.Games.Base;
 using Newtonsoft.Json;
 
 namespace LeaderBot.Config
@@ -11,13 +11,16 @@ namespace LeaderBot.Config
         public DiscordConfig Discord { get; set; } = new DiscordConfig();
         
         [JsonProperty("games")]
-        public List<IGameConfig> Games { get; set; } = new List<IGameConfig>();
+        public List<BaseConfig> Games { get; set; } = new List<BaseConfig>();
 
-        public void Prepare()
+        public void Prepare(IEnumerable<BaseGame> games)
         {
-            if (Games.All(x => x.GetType() != typeof(RocketLeagueConfig)))
+            foreach (var game in games)
             {
-                Games.Add(new RocketLeagueConfig());
+                if (Games.All(x => x.GetType() != game.ConfigType))
+                {
+                    Games.Add(game.CreateConfig());
+                }
             }
         }
     }
