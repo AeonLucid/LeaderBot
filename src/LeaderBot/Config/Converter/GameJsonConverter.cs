@@ -1,21 +1,27 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using LeaderBot.Config.Games;
-using LeaderBot.Data;
+using LeaderBot.Games.Base;
+using LeaderBot.Services;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace LeaderBot.Config.Converter
 {
-    public class GameJsonConverter : JsonConverter
+    internal class GameJsonConverter : JsonConverter
     {
+        private readonly GameRegisteryService _gameRegistery;
+
+        public GameJsonConverter(GameRegisteryService gameRegistery)
+        {
+            _gameRegistery = gameRegistery;
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             var token = (JObject)JToken.FromObject(value);
-            var game = Constants.ConfigTypes.First(kv => kv.Value == value.GetType()).Key;
+            var gameName = _gameRegistery.Games.First(kv => kv.Value.ConfigType == value.GetType()).Key;
             
-            token.AddFirst(new JProperty("game", game.ToString()));
+            token.AddFirst(new JProperty("game", gameName));
             token.WriteTo(writer);
         }
 
@@ -23,23 +29,18 @@ namespace LeaderBot.Config.Converter
         {
             var token = JToken.Load(reader);
             var gameName = (string)token["game"];
-
-            if (!Enum.TryParse<Game>(gameName, out var game))
+            
+            if (!_gameRegistery.Games.TryGetValue(gameName, out var game))
             {
-                throw new JsonReaderException($"Unknown game '{gameName}'.");
+                throw new JsonReaderException($"The game {gameName} is invalid.");
             }
 
-            if (!Constants.ConfigTypes.TryGetValue(game, out var type))
-            {
-                throw new JsonReaderException($"The game {game} has no configuration type set.");
-            }
-
-            return token.ToObject(type);
+            return token.ToObject(game.ConfigType);
         }
 
         public override bool CanConvert(Type objectType)
         {
-            return typeof(IGameConfig).IsAssignableFrom(objectType);
+            return typeof(BaseConfig).IsAssignableFrom(objectType);
         }
 
         public override bool CanRead => true;

@@ -5,10 +5,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
 using Autofac.Extras.NLog;
+using Autofac.Features.ResolveAnything;
 using LeaderBot.Config;
-using LeaderBot.Config.Games;
-using LeaderBot.Data;
+using LeaderBot.Config.Converter;
+using LeaderBot.Games.Base;
 using LeaderBot.Services;
+using Newtonsoft.Json;
 using NLog;
 using ILogger = Autofac.Extras.NLog.ILogger;
 
@@ -36,6 +38,22 @@ namespace LeaderBot
 
             containerBuilder.RegisterModule<SimpleNLogModule>();
             
+            containerBuilder.RegisterType<JsonSerializerSettings>()
+                .AsSelf()
+                .SingleInstance()
+                .OnActivating(eventArgs =>
+                {
+                    eventArgs.Instance.Converters = new List<JsonConverter>
+                    {
+                        new GameJsonConverter(eventArgs.Context.Resolve<GameRegisteryService>())
+                    };
+                });
+            
+            containerBuilder.RegisterType<GameRegisteryService>()
+                .AsSelf()
+                .SingleInstance()
+                .OnActivating(eventArgs => eventArgs.Instance.Load());
+            
             containerBuilder.RegisterType<DiscordService>()
                 .AsSelf()
                 .SingleInstance();
@@ -43,7 +61,16 @@ namespace LeaderBot
             containerBuilder.RegisterType<ConfigProviderService<AppConfig>>()
                 .AsSelf()
                 .SingleInstance()
-                .OnActivating(async eventArgs => await eventArgs.Instance.LoadAsync());;
+                .OnActivating(async eventArgs => await eventArgs.Instance.LoadAsync());
+
+            // Register all the games from all the loaded assemblies.
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                containerBuilder.RegisterAssemblyTypes(assembly)
+                    .AssignableTo<BaseGame>()
+                    .AsSelf()
+                    .SingleInstance();
+            }
             
             // Start the program.
             using (var container = containerBuilder.Build())
@@ -51,9 +78,10 @@ namespace LeaderBot
                 var logger = container.Resolve<ILogger>();
                 var discordService = container.Resolve<DiscordService>();
                 var configProvider = container.Resolve<ConfigProviderService<AppConfig>>();
+                var gameRegistery = container.Resolve<GameRegisteryService>();
                 
                 // Prepare the config.
-                configProvider.Config.Prepare();
+                configProvider.Config.Prepare(gameRegistery.Games.Values);
 
                 await configProvider.SaveAsync();
 
@@ -61,6 +89,18 @@ namespace LeaderBot
                 logger.Info("Starting LeaderBot.");
                 
                 await discordService.StartAsync();
+
+                foreach (var gameConfig in configProvider.Config.Games)
+                {
+                    if (!gameConfig.Enabled)
+                    {
+                        continue;
+                    }
+                    
+                    var game = gameRegistery.Games.Values.First(g => g.ConfigType == gameConfig.GetType());
+                    
+                    game.Initialize(gameConfig);
+                }
                 
                 QuitEvent.WaitOne();
                 

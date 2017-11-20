@@ -8,8 +8,6 @@ using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Net.WebSocket;
 using LeaderBot.Config;
-using LeaderBot.Data;
-using Newtonsoft.Json;
 
 namespace LeaderBot.Services
 {
@@ -21,15 +19,18 @@ namespace LeaderBot.Services
 
         private readonly DiscordClient _client;
 
+        private readonly GameRegisteryService _gameRegistery;
+
         // TODO: Only count players that are registered for that specific game leaderboard.
         
         // TODO: Count players at initialize, either grab all users or every user by his discord id.
         //    Preferably the last one as we have to store the discord user ids anyways.
-        private readonly Dictionary<Game, int> _playerAmount;
+        private readonly Dictionary<string, int> _playerAmount;
 
-        public DiscordService(ILogger logger, ConfigProviderService<AppConfig> configProvider)
+        public DiscordService(ILogger logger, ConfigProviderService<AppConfig> configProvider, GameRegisteryService gameRegistery)
         {
             _logger = logger;
+            _gameRegistery = gameRegistery;
             
             _config = configProvider.Config;
             
@@ -48,21 +49,12 @@ namespace LeaderBot.Services
             _client.GuildAvailable += ClientOnGuildAvailable;
             _client.ClientErrored += ClientOnClientErrored;
             _client.DebugLogger.LogMessageReceived += DebugLoggerOnLogMessageReceived;
-
-            _playerAmount = Enum.GetValues(typeof(Game))
-                .Cast<Game>()
-                .ToDictionary(x => x, y => 0);
         }
 
         /// <summary>
         ///     The guild containing the leaderboards.
         /// </summary>
         public DiscordGuild Guild { get; private set; }
-
-        /// <summary>
-        ///     The current games being played in the <see cref="Guild"/>.
-        /// </summary>
-        public Game[] ActiveGames => _playerAmount.Where(x => x.Value > 0).Select(x => x.Key).ToArray();
         
         public async Task StartAsync()
         {
@@ -147,20 +139,20 @@ namespace LeaderBot.Services
 
         /// <summary>
         ///     Holds track of the amount of players for each
-        ///     <see cref="Game"/> in the <see cref="_playerAmount"/> dictionary.
+        ///     game in the <see cref="_playerAmount"/> dictionary.
         /// </summary>
         /// <param name="previousGameStr"></param>
         /// <param name="nextGameStr"></param>
         private void UpdatePlayerCount(string previousGameStr, string nextGameStr)
         {
             if (!string.IsNullOrWhiteSpace(previousGameStr) &&
-                Constants.DiscordGameNames.TryGetValue(previousGameStr, out var previousGame))
+                _gameRegistery.DiscordGameNames.TryGetValue(previousGameStr, out var previousGame))
             {
                 _playerAmount[previousGame]--;
             }
 
             if (!string.IsNullOrWhiteSpace(nextGameStr) &&
-                Constants.DiscordGameNames.TryGetValue(nextGameStr, out var nextGame))
+                _gameRegistery.DiscordGameNames.TryGetValue(nextGameStr, out var nextGame))
             {
                 _playerAmount[nextGame]++;
             }
@@ -187,12 +179,9 @@ namespace LeaderBot.Services
             }
             
             // Create leaderboard channels.
-            foreach (var game in Enum.GetValues(typeof(Game)).Cast<Game>())
+            foreach (var (gameName, game) in _gameRegistery.Games)
             {
-                if (!Constants.ConfigTypes.TryGetValue(game, out var configType))
-                {
-                    throw new Exception($"The game {game} does not have a config type defined.");
-                }
+                var configType = game.ConfigType;
                 
                 var gameConfig = _config.Games.FirstOrDefault(x => x.GetType() == configType);
                 if (gameConfig == null)
@@ -205,19 +194,11 @@ namespace LeaderBot.Services
                     continue;
                 }
                 
-                var gameName = Constants.DiscordGameNames.FirstOrDefault(x => x.Value == game);
-                if (gameName.Equals(default(KeyValuePair<string,Game>)))
+                var gameNames = _gameRegistery.GetDiscordNames(gameName).ToArray();
+                if (gameNames.Length == 0)
                 {
                     throw new Exception($"The game {game} does not have a name defined in the constants.");
                 }
-
-                // TODO: Proper channel names instead of using '.ToLower().Replace(" ", "-")'
-                if (channels.Any(x => x.Parent == categoryChannel && x.Type == ChannelType.Text && x.Name.Equals(gameName.Key.ToLower().Replace(" ", "-"))))
-                {
-                    continue;
-                }
-                
-                await Guild.CreateChannelAsync(gameName.Key.ToLower().Replace(" ", "-"), ChannelType.Text, categoryChannel);
             }
             
             _logger.Trace($"Finished initializing the target guild.");

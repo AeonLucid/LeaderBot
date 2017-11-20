@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Autofac.Extras.NLog;
-using LeaderBot.Config.Converter;
 using LeaderBot.Extensions;
 using Newtonsoft.Json;
 
@@ -19,7 +17,7 @@ namespace LeaderBot.Services
 
         private readonly JsonSerializerSettings _settings;
         
-        public ConfigProviderService(ILogger logger)
+        public ConfigProviderService(ILogger logger, JsonSerializerSettings settings)
         {
             var rootDir = Path.GetDirectoryName(typeof(Program).Assembly.Location);
             var configDir = Path.Combine(rootDir, "Config");
@@ -27,10 +25,7 @@ namespace LeaderBot.Services
             _logger = logger;
             _configName = $"{typeof(T).Name.ToPascalCase()}.json";
             _configPath = Path.Combine(configDir, _configName);
-            _settings = new JsonSerializerSettings
-            {
-                Converters = new List<JsonConverter> {new GameJsonConverter()}
-            };
+            _settings = settings;
         }
         
         public string Checksum { get; private set; }
