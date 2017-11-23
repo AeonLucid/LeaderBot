@@ -22,9 +22,6 @@ namespace LeaderBot.Services
         private readonly GameRegisteryService _gameRegistery;
 
         // TODO: Only count players that are registered for that specific game leaderboard.
-        
-        // TODO: Count players at initialize, either grab all users or every user by his discord id.
-        //    Preferably the last one as we have to store the discord user ids anyways.
         private readonly Dictionary<string, int> _playerAmount;
 
         public DiscordService(ILogger logger, ConfigProviderService<AppConfig> configProvider, GameRegisteryService gameRegistery)
@@ -49,6 +46,7 @@ namespace LeaderBot.Services
             _client.GuildAvailable += ClientOnGuildAvailable;
             _client.ClientErrored += ClientOnClientErrored;
             _client.DebugLogger.LogMessageReceived += DebugLoggerOnLogMessageReceived;
+            _playerAmount = _gameRegistery.Games.ToDictionary(x => x.Key, y => 0);
         }
 
         /// <summary>
@@ -91,15 +89,19 @@ namespace LeaderBot.Services
                 return Task.CompletedTask;
             }
 
+            var gameBefore = e.PresenceBefore.Game?.Name;
+            var gameNow = e.Game?.Name;
+            
             // Check if the game even changed.
-            if (e.PresenceBefore.Game.Name.ToLower().Equals(e.Game.Name.ToLower()))
+            if (gameNow != gameBefore || 
+                gameBefore != null && gameNow != null && gameBefore.ToLower().Equals(gameNow.ToLower()))
             {
                 return Task.CompletedTask;
             }
             
-            _logger.Trace($"{e.Member.DisplayName} is now playing {e.Game.Name} instead of {e.PresenceBefore.Game.Name}");
+            _logger.Trace($"{e.Member.DisplayName} is now playing {gameNow ?? "{Nothing}"} instead of {gameBefore ?? "{Nothing}"}");
 
-            UpdatePlayerCount(e.PresenceBefore.Game.Name, e.Game.Name);
+            UpdatePlayerCount(gameBefore, gameNow);
             
             return Task.CompletedTask;
         }
@@ -165,7 +167,7 @@ namespace LeaderBot.Services
         /// <returns></returns>
         private async Task InitializeGuild()
         {
-            _logger.Trace($"Initializing the target guild.");
+            _logger.Trace("Initializing the target guild.");
             
             var channels = await Guild.GetChannelsAsync();
 
@@ -173,35 +175,27 @@ namespace LeaderBot.Services
             var categoryChannel = channels.FirstOrDefault(x => x.IsCategory && x.Name.Equals(_config.Discord.CategoryName));
             if (categoryChannel == null)
             {
-                _logger.Trace($"Creating the category channel for the leaderboard(s).");
+                _logger.Trace("Creating the category channel for the leaderboard(s).");
                 
                 await Guild.CreateChannelAsync(_config.Discord.CategoryName, ChannelType.Category);
             }
             
-            // Create leaderboard channels.
-            foreach (var (gameName, game) in _gameRegistery.Games)
+            // Update the playing count.
+            foreach (var member in Guild.Members)
             {
-                var configType = game.ConfigType;
-                
-                var gameConfig = _config.Games.FirstOrDefault(x => x.GetType() == configType);
-                if (gameConfig == null)
+                var gameStr = member.Presence.Game?.Name;
+                if (!string.IsNullOrWhiteSpace(gameStr) &&
+                    _gameRegistery.DiscordGameNames.TryGetValue(gameStr, out var nextGame))
                 {
-                    throw new Exception($"The game {game} does not have a config loaded.");
-                }
-
-                if (!gameConfig.Enabled)
-                {
-                    continue;
-                }
-                
-                var gameNames = _gameRegistery.GetDiscordNames(gameName).ToArray();
-                if (gameNames.Length == 0)
-                {
-                    throw new Exception($"The game {game} does not have a name defined in the constants.");
+                    _playerAmount[nextGame]++;
                 }
             }
+
+            var playingArray = _playerAmount.Where(kv => kv.Value > 0).Select(kv => $"{kv.Key}: {kv.Value}").ToArray();
+            var playingString = playingArray.Length > 0 ? string.Join(", ", playingArray) : "absolutly nothing";
+            _logger.Trace($"Currently the guild is playing: {playingString}");
             
-            _logger.Trace($"Finished initializing the target guild.");
+            // TODO: Create the channels.
         }
      }  
 }
