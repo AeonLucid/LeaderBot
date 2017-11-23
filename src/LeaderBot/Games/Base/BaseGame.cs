@@ -1,35 +1,55 @@
 ﻿using System;
+using NLog;
 
 namespace LeaderBot.Games.Base
 {
-    internal abstract class BaseGame
+    internal abstract class BaseGame<TC> : IBaseGame where TC : BaseConfig
     {
-        public abstract Type ConfigType { get; }
+        public static Logger Logger = LogManager.GetCurrentClassLogger();
 
-        public abstract BaseConfig CreateConfig();
+        /// <summary>
+        ///     The configuration <see cref="Type"/> of <see cref="TC"/>.
+        /// </summary>
+        public Type ConfigType => typeof(TC);
 
-        public abstract void Initialize(BaseConfig config);
-    }
-    
-    internal abstract class BaseGame<TC> : BaseGame where TC : BaseConfig
-    {
-        public override Type ConfigType => typeof(TC);
-        
-        public abstract TC DefaultConfig { get; }
-        
-        public override void Initialize(BaseConfig config)
+        /// <summary>
+        ///     The base configuration when using the <see cref="IBaseGame"/> instance.
+        /// </summary>
+        public BaseConfig LoadedConfigBase { get; set; }
+
+        /// <summary>
+        ///     The full configuration when using the <see cref="BaseGame{TC}"/> instance.
+        /// </summary>
+        public TC LoadedConfig => (TC) LoadedConfigBase;
+
+        /// <summary>
+        ///     The default configuration deployed on first time use.
+        /// </summary>
+        public abstract BaseConfig DefaultConfig { get; }
+
+        /// <summary>
+        ///     Loads the configuration.
+        /// </summary>
+        /// <param name="gameConfig"></param>
+        public void Load(BaseConfig gameConfig)
         {
-            Initialize((TC) config);
+            if (ConfigType != gameConfig.GetType())
+            {
+                throw new ArgumentException(nameof(gameConfig));
+            }
+
+            LoadedConfigBase = gameConfig;
+
+            Logger.Trace($"Loaded the {ConfigType.Name}.");
         }
 
-        public virtual void Initialize(TC config)
+        /// <summary>
+        ///     The game "plugin" is ready to be used by LeaderBot and
+        ///     was loaded properly.
+        /// </summary>
+        public virtual void Initialize()
         {
             
-        }
-
-        public override BaseConfig CreateConfig()
-        {
-            return DefaultConfig;
         }
     }
 }

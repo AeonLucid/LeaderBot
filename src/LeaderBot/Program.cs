@@ -64,7 +64,7 @@ namespace LeaderBot
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
                 containerBuilder.RegisterAssemblyTypes(assembly)
-                    .AssignableTo<BaseGame>()
+                    .AssignableTo<IBaseGame>()
                     .AsSelf()
                     .SingleInstance();
             }
@@ -87,13 +87,13 @@ namespace LeaderBot
                 await discordService.StartAsync();
                 
                 // Load the games.
-                foreach (var (gameName, game) in gameRegistery.Games)
+                foreach (var (game, gameBase) in gameRegistery.Games)
                 {
-                    var gameConfig = configProvider.Config.Games.FirstOrDefault(x => x.GetType() == game.ConfigType);
+                    var gameConfig = configProvider.Config.Games.FirstOrDefault(x => x.GetType() == gameBase.ConfigType);
                     
                     if (gameConfig == null)
                     {
-                        throw new Exception($"The game {game} does not have a config loaded.");
+                        throw new Exception($"The game {gameBase} does not have a config loaded.");
                     }
 
                     if (!gameConfig.Enabled)
@@ -101,14 +101,15 @@ namespace LeaderBot
                         continue;
                     }
                 
-                    if (!gameRegistery.GetGameNames(gameName).Any())
+                    if (!gameRegistery.GetGameNames(game).Any())
                     {
-                        Logger.Warn($"The game {gameName} does not have any Discord names.");
+                        Logger.Warn($"The game {game} does not have any Discord names.");
                     }
 
-                    Logger.Trace($"Enabling the game {gameName}.");
-                    
-                    game.Initialize(gameConfig);
+                    Logger.Trace($"Enabling the game {game}.");
+
+                    gameBase.Load(gameConfig);
+                    gameBase.Initialize();
                 }
                 
                 QuitEvent.WaitOne();

@@ -10,5 +10,6 @@
     <PackageReference Include="DSharpPlus.WebSocket.WebSocket4NetCore" Version="3.2.3" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="NLog" Version="5.0.0-beta11" />
+    <PackageReference Include="RLSApi" Version="1.2.1" />
   </ItemGroup>
 </Project>

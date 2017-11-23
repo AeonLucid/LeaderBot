@@ -176,7 +176,7 @@ namespace LeaderBot.Services
             var categoryChannel = channels.FirstOrDefault(x => x.IsCategory && x.Name.Equals(_config.Discord.CategoryName));
             if (categoryChannel == null)
             {
-                Logger.Trace("Creating the category channel for the leaderboard(s).");
+                Logger.Debug("Creating the category channel for the leaderboard(s).");
 
                 categoryChannel = await Guild.CreateChannelAsync(_config.Discord.CategoryName, ChannelType.Category);
             }
@@ -193,7 +193,30 @@ namespace LeaderBot.Services
             var playingString = playingArray.Length > 0 ? string.Join(", ", playingArray) : "absolutly nothing";
             Logger.Trace($"Currently the guild is playing: {playingString}");
             
-            // TODO: Create the channels.
+            // Create and assign the channels.
+            var gameConfigs = _gameRegistery.Games
+                .Where(x => x.Value.LoadedConfigBase != null && x.Value.LoadedConfigBase.Enabled)
+                .Select(x => x.Value.LoadedConfigBase)
+                .ToArray();
+
+            foreach (var gameConfig in gameConfigs)
+            {
+                var channelConfig = gameConfig.Channel;
+
+                var gameChannel = channels.FirstOrDefault(x =>
+                    x.Type == ChannelType.Text &&
+                    x.Parent == categoryChannel &&
+                    x.Name.Equals(channelConfig.Name));
+
+                if (gameChannel == null)
+                {
+                    Logger.Trace($"Creating a text channel for the game {gameConfig.Game.ToString()}.");
+
+                    gameChannel = await Guild.CreateChannelAsync(channelConfig.Name, ChannelType.Text, categoryChannel);
+                }
+
+                channelConfig.ChannelId = gameChannel.Id;
+            }
         }
      }  
 }

@@ -13,13 +13,13 @@ namespace LeaderBot.Config
         [JsonProperty("games")]
         public List<BaseConfig> Games { get; set; } = new List<BaseConfig>();
 
-        public void Prepare(IEnumerable<BaseGame> games)
+        public void Prepare(IEnumerable<IBaseGame> games)
         {
             foreach (var game in games)
             {
                 if (Games.All(x => x.GetType() != game.ConfigType))
                 {
-                    Games.Add(game.CreateConfig());
+                    Games.Add(game.DefaultConfig);
                 }
             }
         }

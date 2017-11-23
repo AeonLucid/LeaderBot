@@ -6,6 +6,7 @@ using Autofac;
 using LeaderBot.Attributes;
 using LeaderBot.Games;
 using LeaderBot.Games.Base;
+using NLog;
 
 namespace LeaderBot.Services
 {
@@ -17,11 +18,11 @@ namespace LeaderBot.Services
         {
             _context = context;
 
-            Games = new Dictionary<Game, BaseGame>();
+            Games = new Dictionary<Game, IBaseGame>();
             GameNames = new Dictionary<Game, string[]>();
         }
 
-        public Dictionary<Game, BaseGame> Games { get; }
+        public Dictionary<Game, IBaseGame> Games { get; }
 
         public Dictionary<Game, string[]> GameNames { get; }
 
@@ -37,12 +38,12 @@ namespace LeaderBot.Services
                         continue;
                     }
 
-                    if (!typeof(BaseGame).IsAssignableFrom(type))
+                    if (!typeof(IBaseGame).IsAssignableFrom(type))
                     {
-                        throw new Exception("Expected the game to extends BaseGame.");
+                        throw new Exception("Expected the game to extend IBaseGame.");
                     }
-
-                    Games.Add(game.Name, (BaseGame) _context.Resolve(type));
+                    
+                    Games.Add(game.Name, (IBaseGame)_context.Resolve(type));
                     GameNames.Add(game.Name, game.DiscordNames);
                 }
             }

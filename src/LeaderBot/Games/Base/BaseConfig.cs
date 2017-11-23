@@ -1,15 +1,22 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+﻿using LeaderBot.Config;
+using Newtonsoft.Json;
 
 namespace LeaderBot.Games.Base
 {
     internal abstract class BaseConfig
     {
+        protected BaseConfig(Game game)
+        {
+            Game = game;
+        }
+
         [JsonProperty("game")]
-        [JsonConverter(typeof(StringEnumConverter))]
-        public Game Game { get; set; }
+        public Game Game { get; }
 
         [JsonProperty("enabled")]
         public bool Enabled { get; set; }
+
+        [JsonProperty("channel")]
+        public ChannelConfig Channel { get; set; }
     }
 }
