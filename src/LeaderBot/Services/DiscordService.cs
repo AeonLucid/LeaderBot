@@ -2,18 +2,20 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Autofac.Extras.NLog;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Net.WebSocket;
 using LeaderBot.Config;
+using LeaderBot.Games;
+using NLog;
+using LogLevel = DSharpPlus.LogLevel;
 
 namespace LeaderBot.Services
 {
     internal class DiscordService
     {
-        private readonly ILogger _logger;
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         private readonly AppConfig _config;
 
@@ -22,11 +24,10 @@ namespace LeaderBot.Services
         private readonly GameRegisteryService _gameRegistery;
 
         // TODO: Only count players that are registered for that specific game leaderboard.
-        private readonly Dictionary<string, int> _playerAmount;
+        private readonly Dictionary<Game, int> _playerAmount;
 
-        public DiscordService(ILogger logger, ConfigProviderService<AppConfig> configProvider, GameRegisteryService gameRegistery)
+        public DiscordService(ConfigProviderService<AppConfig> configProvider, GameRegisteryService gameRegistery)
         {
-            _logger = logger;
             _gameRegistery = gameRegistery;
             
             _config = configProvider.Config;
@@ -61,7 +62,7 @@ namespace LeaderBot.Services
 
         private Task ClientOnReady(ReadyEventArgs readyEventArgs)
         {
-            _logger.Info("We are now ready to do stuff.");
+            Logger.Info("We are now ready to do stuff.");
 
             return Task.CompletedTask;
         }
@@ -69,12 +70,12 @@ namespace LeaderBot.Services
         private async Task ClientOnGuildAvailable(GuildCreateEventArgs e)
         {
             var guild = e.Guild;
-            
-            _logger.Debug($"We have entered some weird guild named {guild.Name} and they seem to have {guild.MemberCount} members.");
+
+            Logger.Debug($"We have entered some weird guild named {guild.Name} and they seem to have {guild.MemberCount} members.");
 
             if (guild.Id == _config.Discord.GuildId)
             {
-                _logger.Info($"Successfully joined the target guild called {guild.Name}.");
+                Logger.Info($"Successfully joined the target guild called {guild.Name}.");
                 
                 Guild = guild;
                 
@@ -89,7 +90,7 @@ namespace LeaderBot.Services
                 return Task.CompletedTask;
             }
 
-            var gameBefore = e.PresenceBefore.Game?.Name;
+            var gameBefore = e.PresenceBefore?.Game?.Name;
             var gameNow = e.Game?.Name;
             
             // Check if the game even changed.
@@ -98,8 +99,8 @@ namespace LeaderBot.Services
             {
                 return Task.CompletedTask;
             }
-            
-            _logger.Trace($"{e.Member.DisplayName} is now playing {gameNow ?? "{Nothing}"} instead of {gameBefore ?? "{Nothing}"}");
+
+            Logger.Trace($"{e.Member.DisplayName} is now playing {gameNow ?? "{Nothing}"} instead of {gameBefore ?? "{Nothing}"}");
 
             UpdatePlayerCount(gameBefore, gameNow);
             
@@ -108,7 +109,7 @@ namespace LeaderBot.Services
 
         private Task ClientOnClientErrored(ClientErrorEventArgs e)
         {
-            _logger.Error("We are broke.", e.Exception);
+            Logger.Error(e.Exception, "We are broke.");
 
             return Task.CompletedTask;
         }
@@ -120,19 +121,19 @@ namespace LeaderBot.Services
             switch (e.Level)
             {
                 case LogLevel.Debug:
-                    _logger.Debug(logFormat, e.Message);
+                    Logger.Debug(logFormat, e.Message);
                     break;
                 case LogLevel.Info:
-                    _logger.Info(logFormat, e.Message);
+                    Logger.Info(logFormat, e.Message);
                     break;
                 case LogLevel.Warning:
-                    _logger.Warn(logFormat, e.Message);
+                    Logger.Warn(logFormat, e.Message);
                     break;
                 case LogLevel.Error:
-                    _logger.Error(logFormat, e.Message);
+                    Logger.Error(logFormat, e.Message);
                     break;
                 case LogLevel.Critical:
-                    _logger.Fatal(logFormat, e.Message);
+                    Logger.Fatal(logFormat, e.Message);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -147,14 +148,14 @@ namespace LeaderBot.Services
         /// <param name="nextGameStr"></param>
         private void UpdatePlayerCount(string previousGameStr, string nextGameStr)
         {
-            if (!string.IsNullOrWhiteSpace(previousGameStr) &&
-                _gameRegistery.DiscordGameNames.TryGetValue(previousGameStr, out var previousGame))
+            var previousGame = _gameRegistery.GetGame(previousGameStr);
+            if (previousGame != Game.Unknown)
             {
                 _playerAmount[previousGame]--;
             }
 
-            if (!string.IsNullOrWhiteSpace(nextGameStr) &&
-                _gameRegistery.DiscordGameNames.TryGetValue(nextGameStr, out var nextGame))
+            var nextGame = _gameRegistery.GetGame(nextGameStr);
+            if (nextGame != Game.Unknown)
             {
                 _playerAmount[nextGame]++;
             }
@@ -167,7 +168,7 @@ namespace LeaderBot.Services
         /// <returns></returns>
         private async Task InitializeGuild()
         {
-            _logger.Trace("Initializing the target guild.");
+            Logger.Trace("Initializing the target guild.");
             
             var channels = await Guild.GetChannelsAsync();
 
@@ -175,25 +176,22 @@ namespace LeaderBot.Services
             var categoryChannel = channels.FirstOrDefault(x => x.IsCategory && x.Name.Equals(_config.Discord.CategoryName));
             if (categoryChannel == null)
             {
-                _logger.Trace("Creating the category channel for the leaderboard(s).");
-                
-                await Guild.CreateChannelAsync(_config.Discord.CategoryName, ChannelType.Category);
+                Logger.Trace("Creating the category channel for the leaderboard(s).");
+
+                categoryChannel = await Guild.CreateChannelAsync(_config.Discord.CategoryName, ChannelType.Category);
             }
             
             // Update the playing count.
-            foreach (var member in Guild.Members)
+            var members = await Guild.GetAllMembersAsync();
+
+            foreach (var member in members)
             {
-                var gameStr = member.Presence.Game?.Name;
-                if (!string.IsNullOrWhiteSpace(gameStr) &&
-                    _gameRegistery.DiscordGameNames.TryGetValue(gameStr, out var nextGame))
-                {
-                    _playerAmount[nextGame]++;
-                }
+                UpdatePlayerCount(string.Empty, member.Presence?.Game?.Name);
             }
 
             var playingArray = _playerAmount.Where(kv => kv.Value > 0).Select(kv => $"{kv.Key}: {kv.Value}").ToArray();
             var playingString = playingArray.Length > 0 ? string.Join(", ", playingArray) : "absolutly nothing";
-            _logger.Trace($"Currently the guild is playing: {playingString}");
+            Logger.Trace($"Currently the guild is playing: {playingString}");
             
             // TODO: Create the channels.
         }

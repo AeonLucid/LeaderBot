@@ -1,15 +1,15 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
-using Autofac.Extras.NLog;
 using LeaderBot.Extensions;
 using Newtonsoft.Json;
+using NLog;
 
 namespace LeaderBot.Services
 {
     public class ConfigProviderService<T>
     {
-        private readonly ILogger _logger;
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         private readonly string _configName;
 
@@ -17,32 +17,31 @@ namespace LeaderBot.Services
 
         private readonly JsonSerializerSettings _settings;
         
-        public ConfigProviderService(ILogger logger, JsonSerializerSettings settings)
+        public ConfigProviderService(JsonSerializerSettings settings)
         {
             var rootDir = Path.GetDirectoryName(typeof(Program).Assembly.Location);
             var configDir = Path.Combine(rootDir, "Config");
             
-            _logger = logger;
             _configName = $"{typeof(T).Name.ToPascalCase()}.json";
             _configPath = Path.Combine(configDir, _configName);
             _settings = settings;
         }
-        
-        public string Checksum { get; private set; }
+
+        private string Checksum { get; set; }
         
         public T Config { get; private set; }
         
         public async Task LoadAsync()
         {
-            _logger.Debug($"Loading the configuration file {_configName}.");
+            Logger.Debug($"Loading the configuration file {_configName}.");
 
             Directory.CreateDirectory(Path.GetDirectoryName(_configPath));
     
             if (!File.Exists(_configPath))
             {
                 Config = (T) Activator.CreateInstance(typeof(T));
-                    
-                _logger.Trace($"A new configuration file called {_configName} has been created.");
+
+                Logger.Trace($"A new configuration file called {_configName} has been created.");
             }
             else
             {
@@ -50,8 +49,8 @@ namespace LeaderBot.Services
                 
                 Config = JsonConvert.DeserializeObject<T>(data, _settings);
                 Checksum = data.GetChecksum();
-                    
-                _logger.Trace($"The existing configuration file {_configName} has been loaded.");
+
+                Logger.Trace($"The existing configuration file {_configName} has been loaded.");
             }
 
             // Save current config to a file. Will also add any new config values. 
@@ -60,7 +59,7 @@ namespace LeaderBot.Services
 
         public async Task SaveAsync()
         {
-            _logger.Trace($"Trying to save the configuration file {_configName}.");
+            Logger.Trace($"Trying to save the configuration file {_configName}.");
 
             var data = Config.ToJson(Formatting.Indented, _settings);
             var dataChecksum = data.GetChecksum();
@@ -69,8 +68,8 @@ namespace LeaderBot.Services
             {
                 return;
             }
-            
-            _logger.Debug($"Saving the configuration file {_configName} because there was a checksum change.");
+
+            Logger.Debug($"Saving the configuration file {_configName} because there was a checksum change.");
 
             await File.WriteAllTextAsync(_configPath, data);
 

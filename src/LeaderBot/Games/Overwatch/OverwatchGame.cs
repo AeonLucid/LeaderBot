@@ -1,24 +1,23 @@
-﻿using Autofac.Extras.NLog;
-using LeaderBot.Attributes;
+﻿using LeaderBot.Attributes;
 using LeaderBot.Games.Base;
+using NLog;
 
 namespace LeaderBot.Games.Overwatch
 {
-    [Game("Overwatch")]
+    [Game(Game.Overwatch)]
     internal class OverwatchGame : BaseGame<OverwatchConfig>
     {
-        private readonly ILogger _logger;
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-        public OverwatchGame(ILogger logger)
+        public OverwatchGame()
         {
-            _logger = logger;
-        }
-
-        public override void Initialize(OverwatchConfig config)
-        {
-            _logger.Info("Overwatch loaded.");
         }
 
         public override OverwatchConfig DefaultConfig => new OverwatchConfig();
+
+        public override void Initialize(OverwatchConfig config)
+        {
+            Logger.Info("Overwatch loaded.");
+        }
     }
 }

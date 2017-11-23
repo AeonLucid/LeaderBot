@@ -1,18 +1,25 @@
 ﻿using System;
+using LeaderBot.Games;
 
 namespace LeaderBot.Attributes
 {
     [AttributeUsage(AttributeTargets.Class)]
-    public class GameAttribute : Attribute
+    internal class GameAttribute : Attribute
     {
-        public readonly string Name;
-        
-        public string[] DiscordNames;
-
-        public GameAttribute(string name)
+        public GameAttribute(Game name)
         {
             Name = name;
-            DiscordNames = new[] {name};
+            DiscordNames = new[] {name.ToString()};
         }
+
+        public GameAttribute(Game name, string[] discordNames)
+        {
+            Name = name;
+            DiscordNames = discordNames;
+        }
+
+        public Game Name { get; }
+
+        public string[] DiscordNames { get; }
     }
 }

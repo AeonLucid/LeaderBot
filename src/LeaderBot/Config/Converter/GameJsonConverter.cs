@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Linq;
+using LeaderBot.Games;
 using LeaderBot.Games.Base;
 using LeaderBot.Services;
 using Newtonsoft.Json;
@@ -19,23 +19,21 @@ namespace LeaderBot.Config.Converter
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             var token = (JObject)JToken.FromObject(value);
-            var gameName = _gameRegistery.Games.First(kv => kv.Value.ConfigType == value.GetType()).Key;
-            
-            token.AddFirst(new JProperty("game", gameName));
+
             token.WriteTo(writer);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object value, JsonSerializer serializer)
         {
             var token = JToken.Load(reader);
-            var gameName = (string)token["game"];
+            var game = token["game"].ToObject<Game>();
             
-            if (!_gameRegistery.Games.TryGetValue(gameName, out var game))
+            if (!_gameRegistery.Games.TryGetValue(game, out var baseGame))
             {
-                throw new JsonReaderException($"The game {gameName} is invalid.");
+                throw new JsonReaderException($"The game {game.ToString()} is invalid.");
             }
 
-            return token.ToObject(game.ConfigType);
+            return token.ToObject(baseGame.ConfigType);
         }
 
         public override bool CanConvert(Type objectType)

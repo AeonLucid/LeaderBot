@@ -4,20 +4,19 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
-using Autofac.Extras.NLog;
-using Autofac.Features.ResolveAnything;
 using LeaderBot.Config;
 using LeaderBot.Config.Converter;
 using LeaderBot.Games.Base;
 using LeaderBot.Services;
 using Newtonsoft.Json;
 using NLog;
-using ILogger = Autofac.Extras.NLog.ILogger;
 
 namespace LeaderBot
 {
     internal static class Program
     {
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
         private static readonly ManualResetEvent QuitEvent = new ManualResetEvent(false);
         
         private static async Task Main(string[] args)
@@ -35,8 +34,6 @@ namespace LeaderBot
             
             // Configure DI.
             var containerBuilder = new ContainerBuilder();
-
-            containerBuilder.RegisterModule<SimpleNLogModule>();
             
             containerBuilder.RegisterType<JsonSerializerSettings>()
                 .AsSelf()
@@ -75,7 +72,6 @@ namespace LeaderBot
             // Start the program.
             using (var container = containerBuilder.Build())
             {
-                var logger = container.Resolve<ILogger>();
                 var discordService = container.Resolve<DiscordService>();
                 var configProvider = container.Resolve<ConfigProviderService<AppConfig>>();
                 var gameRegistery = container.Resolve<GameRegisteryService>();
@@ -86,7 +82,7 @@ namespace LeaderBot
                 await configProvider.SaveAsync();
 
                 // Launch the application.
-                logger.Info("Starting LeaderBot.");
+                Logger.Info("Starting LeaderBot.");
                 
                 await discordService.StartAsync();
                 
@@ -105,22 +101,23 @@ namespace LeaderBot
                         continue;
                     }
                 
-                    if (!gameRegistery.GetDiscordNames(gameName).Any())
+                    if (!gameRegistery.GetGameNames(gameName).Any())
                     {
-                        logger.Warn($"The game {gameName} does not have any Discord names.");
+                        Logger.Warn($"The game {gameName} does not have any Discord names.");
                     }
-                    
-                    logger.Trace($"Enabling the game {gameName}.");
+
+                    Logger.Trace($"Enabling the game {gameName}.");
                     
                     game.Initialize(gameConfig);
                 }
                 
                 QuitEvent.WaitOne();
-                
-                logger.Warn("Shutting down.");
+
+                Logger.Warn("Shutting down.");
             }
             
             // Bye.
+            LogManager.Shutdown();
         }
     }
 }

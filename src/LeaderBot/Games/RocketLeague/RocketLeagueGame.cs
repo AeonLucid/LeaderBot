@@ -3,7 +3,7 @@ using LeaderBot.Games.Base;
 
 namespace LeaderBot.Games.RocketLeague
 {
-    [Game("RocketLeague", DiscordNames = new[] {"Rocket League"})]
+    [Game(Game.RocketLeague, new[] {"Rocket League"})]
     internal class RocketLeagueGame : BaseGame<RocketLeagueConfig>
     {
         public override RocketLeagueConfig DefaultConfig => new RocketLeagueConfig

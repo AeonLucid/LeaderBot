@@ -4,22 +4,26 @@ using System.Linq;
 using System.Reflection;
 using Autofac;
 using LeaderBot.Attributes;
+using LeaderBot.Games;
 using LeaderBot.Games.Base;
 
 namespace LeaderBot.Services
 {
     internal class GameRegisteryService
     {
-        public readonly Dictionary<string, BaseGame> Games = new Dictionary<string, BaseGame>();
-
-        public readonly Dictionary<string, string> DiscordGameNames = new Dictionary<string, string>();
-
         private readonly IComponentContext _context;
 
         public GameRegisteryService(IComponentContext context)
         {
             _context = context;
+
+            Games = new Dictionary<Game, BaseGame>();
+            GameNames = new Dictionary<Game, string[]>();
         }
+
+        public Dictionary<Game, BaseGame> Games { get; }
+
+        public Dictionary<Game, string[]> GameNames { get; }
 
         public void Load()
         {
@@ -28,7 +32,6 @@ namespace LeaderBot.Services
                 foreach (var type in assembly.GetTypes())
                 {
                     var game = type.GetCustomAttribute<GameAttribute>();
-
                     if (game == null)
                     {
                         continue;
@@ -40,18 +43,24 @@ namespace LeaderBot.Services
                     }
 
                     Games.Add(game.Name, (BaseGame) _context.Resolve(type));
-
-                    foreach (var discordName in game.DiscordNames)
-                    {
-                        DiscordGameNames.Add(discordName, game.Name);
-                    }
+                    GameNames.Add(game.Name, game.DiscordNames);
                 }
             }
         }
 
-        public IEnumerable<string> GetDiscordNames(string gameName)
+        public Game GetGame(string game)
         {
-            return DiscordGameNames.Where(kv => kv.Value.Equals(gameName)).Select(kv => kv.Key);
+            if (string.IsNullOrWhiteSpace(game))
+            {
+                return Game.Unknown;
+            }
+
+            return GameNames.FirstOrDefault(x => x.Value.Contains(game)).Key;
+        }
+
+        public IEnumerable<string> GetGameNames(Game game)
+        {
+            return GameNames[game];
         }
     }
 }
